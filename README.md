@@ -10,8 +10,8 @@ esptool) and talks to the board with the browser's **Web Serial** API.
    supported — they have no Web Serial).
 2. Plug the MUGIC in with a USB-C **data** cable.
 3. Click **Connect device** and pick the serial port in the browser dialog.
-4. Leave **"Use the firmware included with this page"** selected (or choose your own
-   `main.bin`) and click **Update firmware**.
+4. Leave the **version dropdown** on the latest release — or pick an older version to revert —
+   (or choose your own `main.bin` file), then click **Update firmware**.
 5. Wait for **"Done — device restarted with new firmware."** Don't unplug while it works.
 
 ### If no device shows up when connecting
@@ -20,29 +20,49 @@ built in; Windows and older macOS normally need it once:
 - Driver: <https://www.wch-ic.com/downloads/CH34XSER_MAC_ZIP.html> (macOS) /
   the CH341SER package for Windows.
 
-## Two ways to supply `main.bin`
+## Two ways to supply firmware
 
-- **Bundled (recommended):** drop a known-good `main.bin` next to `flash.html`. The page
-  `fetch()`es it so the user just clicks one button. This requires the page to be **served**
-  over https or localhost (see below) — a bare `file://` double-click can't fetch a sibling
-  file in most browsers.
+- **Hosted versions (recommended):** the page reads `versions.json` and shows a dropdown of
+  the `main-<ver>.bin` releases hosted next to `flash.html`, newest first. The user picks one
+  (default = latest) and clicks one button. This requires the page to be **served** over https
+  or localhost (see below) — a bare `file://` double-click can't `fetch()` a sibling file in
+  most browsers.
 - **Choose a file:** the user selects a `main.bin` from their drive. Works even from
   `file://`. Good for developers / custom builds.
 
 In both cases the file stays local — it is streamed straight to the device over serial and
 is never uploaded anywhere.
 
+## Publishing a new firmware version
+
+The firmware picker is driven by `versions.json` + the `main-<ver>.bin` files in this folder.
+To publish a release built in the private `mugic-firmware` repo:
+
+1. Copy the built, version-verified image here as `main-<ver>.bin`
+   (e.g. `release/main-2.1.3.bin` → `main-2.1.3.bin`).
+2. Add an entry to `versions.json` (newest first) and set `"latest"` to the new version:
+   ```json
+   { "version": "2.1.3", "file": "main-2.1.3.bin", "label": "latest" }
+   ```
+   Use `"label": "original"` (or omit `label`) for older entries. The page reads the embedded
+   version straight off the device, so the filename/manifest are just labels — but keep them
+   honest (each `main-<ver>.bin` should embed that same `<ver>`; check with
+   `esptool.py image_info --version 2 main-<ver>.bin`).
+3. Keep `main.bin` as a copy of the latest — it's the fallback the page uses if `versions.json`
+   is missing or fails to load.
+4. Commit and push; GitHub Pages redeploys automatically.
+
 ## Hosting
 
-Web Serial only runs in a **secure context** (https or `localhost`). Host `flash.html`
-(and, for the bundled option, `main.bin`) the same way as `ble_website`, e.g.:
+Web Serial only runs in a **secure context** (https or `localhost`). This repo is published
+via **GitHub Pages** (branch `main`, root) at <https://mugic-dev.github.io/flash-firmware/> —
+pushing to `main` redeploys it. To serve locally over https for testing:
 
 ```
-cd flash_website
-http-server -S -C ../ble_website/server.cert -K ../ble_website/server.key
+http-server -S -C server.cert -K server.key
 ```
 
-or publish it as a static page next to the BLE configurator.
+(generate a self-signed `server.cert`/`server.key` with `openssl req -nodes -new -x509`).
 
 ## Board / flash parameters (baked into flash.html)
 

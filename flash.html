@@ -37,6 +37,7 @@
           .flasher details { margin-top:8px; } .flasher summary { cursor:pointer; font-weight:600; color:var(--err); }
           .flasher .row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
           .flasher .hidden { display:none; }
+          .flasher select { font:inherit; padding:6px 8px; border:1px solid #cfcfcf; border-radius:8px; background:#fff; }
           .flasher code { background:#eee; padding:1px 5px; border-radius:4px; }
           .flasher p.lead { color:#444; font-size:16px; margin:0 0 14px; }
         </style>
@@ -116,8 +117,12 @@
                                         </label>
                                         <label class="radio">
                                           <input type="radio" name="src" value="bundled" />
-                                          Use the firmware included with this page (only if a <code>main.bin</code> is hosted here)
+                                          Use firmware hosted on this page — choose a version:
                                         </label>
+                                        <div class="row" style="margin-top:6px">
+                                          <select id="verSelect" disabled></select>
+                                        </div>
+                                        <div id="verNote" class="note hidden" style="margin-top:8px"></div>
                                       </div>
 
                                       <div class="card">
@@ -181,7 +186,8 @@
           const CHIP_BAUD   = 460800;
           const FLASH_OPTS  = { flashSize: "4MB", flashMode: "dio", flashFreq: "60m" };
           const APP_OFFSET  = 0x20000;
-          const BUNDLED_APP = "./main.bin";          // firmware shipped next to this page
+          const BUNDLED_APP = "./main.bin";          // fallback "latest" if the manifest is missing
+          const MANIFEST    = "./versions.json";      // lists the hosted main-<ver>.bin releases
           const FULL_FLASH  = [                       // offset -> <input id>
             { addr: 0x0,     id: "f_boot", name: "bootloader.bin" },
             { addr: 0x8000,  id: "f_part", name: "partition-table.bin" },
@@ -205,9 +211,58 @@
           }
 
           document.querySelectorAll('input[name=src]').forEach(r =>
-            r.addEventListener("change", () => {
-              $("appFile").disabled = (document.querySelector('input[name=src]:checked').value !== "file");
-            }));
+            r.addEventListener("change", onSrcChange));
+          $("verSelect").addEventListener("change", updateVerNote);
+
+          function onSrcChange() {
+            const src = document.querySelector('input[name=src]:checked').value;
+            $("appFile").disabled = (src !== "file");
+            $("verSelect").disabled = (src !== "bundled");
+            updateVerNote();
+          }
+
+          // Show which version is selected, plus a downgrade caution when it isn't the latest.
+          function updateVerNote() {
+            const note = $("verNote"), sel = $("verSelect");
+            const bundled = document.querySelector('input[name=src]:checked')?.value === "bundled";
+            const opt = sel.options[sel.selectedIndex];
+            if (!bundled || !opt) { note.classList.add("hidden"); return; }
+            const ver = opt.dataset.version || opt.textContent;
+            let html = "You'll flash <b>firmware " + ver + "</b>.";
+            if (opt.dataset.latest !== "true")
+              html += " <b>Note:</b> this is older than the latest release — reverting can reset your saved settings.";
+            note.innerHTML = html;
+            note.classList.remove("hidden");
+          }
+
+          // Populate the version dropdown from versions.json (newest first, latest preselected).
+          async function loadVersions() {
+            const sel = $("verSelect");
+            try {
+              const resp = await fetch(MANIFEST, { cache: "no-store" });
+              if (!resp.ok) throw new Error("HTTP " + resp.status);
+              const m = await resp.json();
+              const list = Array.isArray(m.versions) ? m.versions : [];
+              if (!list.length) throw new Error("empty manifest");
+              sel.innerHTML = "";
+              list.forEach(v => {
+                const o = document.createElement("option");
+                o.value = v.file;
+                o.textContent = v.version + (v.label ? " (" + v.label + ")" : "");
+                o.dataset.version = v.version;
+                o.dataset.latest = String(v.version === m.latest);
+                sel.appendChild(o);
+              });
+              const li = list.findIndex(v => v.version === m.latest);
+              sel.selectedIndex = li >= 0 ? li : 0;
+            } catch (e) {
+              // No manifest → offer the single bundled main.bin so the page still works.
+              sel.innerHTML = '<option value="' + BUNDLED_APP + '" data-version="latest" data-latest="true">latest</option>';
+              log("Version list unavailable (" + (e?.message || e) + "); using bundled main.bin.");
+            }
+            updateVerNote();
+          }
+          loadVersions();
 
           $("connectBtn").addEventListener("click", connect);
           $("flashBtn").addEventListener("click", () => flashApp());
@@ -291,8 +346,9 @@
               if (!f) throw new Error("Choose a main.bin file first.");
               return bufToBinaryString(await f.arrayBuffer());
             }
-            const resp = await fetch(BUNDLED_APP, { cache: "no-store" });
-            if (!resp.ok) throw new Error("Could not load the included main.bin (" + resp.status +
+            const url = $("verSelect").value || BUNDLED_APP;
+            const resp = await fetch(url, { cache: "no-store" });
+            if (!resp.ok) throw new Error("Could not load the hosted firmware " + url + " (" + resp.status +
               "). Host this page over https/localhost, or choose a file instead.");
             return bufToBinaryString(await resp.arrayBuffer());
           }
