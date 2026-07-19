@@ -1,0 +1,136 @@
+<!DOCTYPE html><!-- Chrome (nav/footer/styles) mirrors the MUGIC Webflow site; changelog body is custom. -->
+<!-- KEEP IN SYNC with ../CHANGELOG.md — update both when publishing a new main-2.x.y.bin. -->
+<html data-wf-domain="mugicmotion.webflow.io" data-wf-site="66521f39ad9f5f9fd9e981de" lang="en">
+    <head>
+        <meta charset="utf-8"/>
+        <title>MUGIC Firmware Release Notes</title>
+        <meta content="MUGIC Firmware Release Notes" property="og:title"/>
+        <meta content="MUGIC Firmware Release Notes" property="twitter:title"/>
+        <meta content="width=device-width, initial-scale=1" name="viewport"/>
+        <meta content="Webflow" name="generator"/>
+        <meta content="noindex" name="robots"/>
+        <link href="https://cdn.prod.website-files.com/66521f39ad9f5f9fd9e981de/css/mugicmotion.webflow.ba24b9f8e.min.css" rel="stylesheet" type="text/css"/>
+        <link href="https://fonts.googleapis.com" rel="preconnect"/>
+        <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin="anonymous"/>
+        <script src="https://ajax.googleapis.com/ajax/libs/webfont/1.6.26/webfont.js" type="text/javascript"></script><script type="text/javascript">WebFont.load({  google: {    families: ["Baskervville:regular,italic","Poppins:100,100italic,200,200italic,300,300italic,regular,italic,500,500italic,600,600italic,700,700italic,800,800italic,900,900italic"]  }});</script><script type="text/javascript">!function(o,c){var n=c.documentElement,t=" w-mod-";n.className+=t+"js",("ontouchstart"in o||o.DocumentTouch&&c instanceof DocumentTouch)&&(n.className+=t+"touch")}(window,document);</script>
+        <link href="https://cdn.prod.website-files.com/66521f39ad9f5f9fd9e981de/665960e127c4f197141def3b_mugic-Favicon-black.svg" rel="shortcut icon" type="image/x-icon"/>
+        <link href="https://cdn.prod.website-files.com/66521f39ad9f5f9fd9e981de/665960f304575e7ce9912cb8_mugic-webclip%20-%20black.jpg" rel="apple-touch-icon"/>
+        <style>
+          /* Changelog styles, scoped to .changelog so the Webflow page layout is untouched. */
+          .changelog { --accent:#9b1f7a; --new:#1a7f37; --ship:#555;
+            font-family: 'Poppins', -apple-system, "Segoe UI", Arial, sans-serif; color:#1a1a1a; max-width:760px; }
+          .changelog * { box-sizing: border-box; }
+          .changelog p.lead { color:#444; font-size:16px; font-style:italic; margin:0 0 22px; }
+          .changelog .release { border-top:1px solid #e3e3e3; padding:22px 0 4px; }
+          .changelog .release:first-of-type { border-top:none; padding-top:0; }
+          .changelog .rel-head { display:flex; align-items:baseline; flex-wrap:wrap; gap:10px 14px; margin-bottom:2px; }
+          .changelog .ver { font-size:22px; font-weight:700; margin:0; }
+          .changelog .date { color:#666; font-size:15px; }
+          .changelog .badge { font-size:12px; font-weight:600; color:#fff; background:var(--accent);
+            border-radius:999px; padding:3px 11px; text-transform:uppercase; letter-spacing:.03em; }
+          .changelog .badge.new { background:var(--new); }
+          .changelog .badge.ship { background:var(--ship); }
+          .changelog .summary { color:#333; font-size:15.5px; margin:8px 0 14px; }
+          .changelog h3 { font-size:15px; font-weight:700; margin:18px 0 6px; color:var(--accent); }
+          .changelog ul { margin:0 0 6px; padding-left:20px; }
+          .changelog li { font-size:15px; line-height:1.55; margin:5px 0; }
+          .changelog li b { color:#1a1a1a; }
+          .changelog em { font-style:italic; }
+        </style>
+    </head>
+    <body>
+        <div class="main-wrapper">
+            <div data-collapse="medium" data-animation="default" data-duration="400" data-easing="ease" data-easing2="ease" role="banner" class="navigation w-nav">
+                <nav class="navigation-wrap">
+                    <a href="//mugicmotion.com" class="logo-link w-nav-brand"><img src="https://cdn.prod.website-files.com/66521f39ad9f5f9fd9e981de/6652ba707d431aabc44a4afa_mugic-logo.png" width="200" alt="mugic motion logo. black mu symbol in an orange circle with he words mugicmotion next to it - light version" class="logo-image"/></a>
+                    <div class="menu">
+                        <nav role="navigation" class="navigation-items w-nav-menu">
+                            <a href="//mugicmotion.com/about" class="navigation-item w-nav-link">About</a>
+                            <div data-hover="false" data-delay="0" class="w-dropdown">
+                                <nav class="dropdown-toggle-2 w-dropdown-toggle">
+                                    <div class="w-icon-dropdown-toggle"></div>
+                                    <div>Support</div>
+                                </nav>
+                                <nav class="nav_dropdown w-dropdown-list"><a href="//mugicmotion.com/support/home" class="nav_dropdown-link first w-dropdown-link">General</a><a href="//mugicmotion.com/support/getting-started" class="nav_dropdown-link w-dropdown-link">Getting Started</a><a href="//mugicmotion.com/support/connect-multiple-mugics" class="nav_dropdown-link middle w-dropdown-link">Connecting Multiple Mugics</a></nav>
+                            </div>
+                            <a href="//mugicmotion.com/community" class="navigation-item w-nav-link">Community</a><a href="//mugicmotion.com/contact" class="navigation-item w-nav-link">Contact</a>
+                        </nav>
+                        <div class="menu-button w-nav-button"><img src="https://cdn.prod.website-files.com/66521f39ad9f5f9fd9e981de/66521f39ad9f5f9fd9e98266_menu-icon.png" width="22" alt="" class="menu-icon"/></div>
+                    </div>
+                </nav>
+            </div>
+            <div class="section_about">
+                <div class="padding-global">
+                    <div class="container-medium">
+                        <div class="padding-section-large">
+                            <div class="ble_content">
+                                <div class="text-content_component">
+                                    <h1 class="heading-style-h3">Firmware Release Notes</h1>
+                                    <div class="changelog">
+                                      <p class="lead">The MUGIC is a wireless motion sensor that streams your movement — orientation, rotation, and acceleration — into music and creative software in real time.</p>
+
+                                      <div class="release">
+                                        <div class="rel-head">
+                                          <h2 class="ver">Version 2.1.3</h2>
+                                          <span class="date">July 2026</span>
+                                          <span class="badge new">New update</span>
+                                        </div>
+                                        <p class="summary">The first firmware update since launch. It makes the MUGIC more stable and dependable, and gives you more control over the motion data you send.</p>
+
+                                        <h3>More reliable, everywhere</h3>
+                                        <ul>
+                                          <li><b>Fewer crashes and freezes.</b> Fixed issues that could cause the device to hang, restart, or get stuck in a reboot loop — including during updates.</li>
+                                          <li><b>Steadier streaming.</b> Motion streaming now pauses cleanly while you change settings, then resumes on its own.</li>
+                                          <li><b>Dependable activity logs.</b> Logs save reliably, download in full for troubleshooting, and clear with a single tap.</li>
+                                        </ul>
+
+                                        <h3>More control over your motion data</h3>
+                                        <ul>
+                                          <li><b>Choose how acceleration is measured.</b> Switch between <em>linear acceleration</em> (your movement only, with gravity filtered out) and <em>raw acceleration</em> (total force, including gravity) — whichever suits your instrument or software.</li>
+                                          <li><b>Custom data labels.</b> Give your motion stream its own name so multiple MUGICs or channels are easy to tell apart in your software.</li>
+                                        </ul>
+
+                                        <h3>Easier setup</h3>
+                                        <ul>
+                                          <li><b>Smarter Bluetooth.</b> Bluetooth turns on only when you need it and switches off when idle, so Wi-Fi streaming and battery life aren't affected.</li>
+                                          <li><b>Clearer configuration screen</b>, with improved Wi-Fi labeling and a cleaner layout.</li>
+                                        </ul>
+                                      </div>
+
+                                      <div class="release">
+                                        <div class="rel-head">
+                                          <h2 class="ver">Version 2.0.1</h2>
+                                          <span class="date">October 2024</span>
+                                          <span class="badge ship">Originally shipped with your device</span>
+                                        </div>
+                                        <p class="summary">The firmware your MUGIC came with when you bought it. Streams motion over Wi-Fi (in the standard OSC format music apps understand) or USB, sends to multiple destinations at once, supports Bluetooth setup, full-color LED status, rechargeable-battery monitoring, and wireless updates.</p>
+                                      </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <section class="footer-dark">
+                <div class="footer-wrapper">
+                    <a href="#" class="nav_logo-2 w-inline-block"><img src="https://cdn.prod.website-files.com/66521f39ad9f5f9fd9e981de/6652c18a7a4d9fdef6a765c9_mugic-logo_white.png" loading="lazy" width="228" height="Auto" alt="mugic motion logo. black mu symbol in an orange circle with he words mugicmotion next to it - dark version" class="logo-image"/></a>
+                    <div class="footer-content">
+                        <div class="footer-block"><a href="//mugicmotion.com/" class="footer-link">Home</a></div>
+                        <div class="footer-block"><a href="//mugicmotion.com/support/home" class="footer-link">Support</a></div>
+                        <div class="footer-block"><a href="//mugicmotion.com/community" class="footer-link">Community</a></div>
+                        <div class="footer-block"><a href="//mugicmotion.com/about" class="footer-link">About</a></div>
+                        <div class="footer-block"><a href="//mugicmotion.com/contact" class="footer-link">Contact</a></div>
+                    </div>
+                </div>
+                <div class="footer-divider"></div>
+                <div class="footer-extras">
+                    <div class="footer-copyright">Copyright © 2024  Kimari, LLC - All Rights Reserved. Website Design by <a href="https://mykalle-bonnevie-portfolio.webflow.io/" class="inline-link-white">Mykalle Bonnevie</a></div>
+                    <div class="footer-socials"><a href="mailto:marikimura@mugicmotion.com?subject=Mugic%20Motion" class="contact_email w-inline-block"><img src="https://cdn.prod.website-files.com/66521f39ad9f5f9fd9e981de/6652bbf48b360cc1f359213a_email-icon.svg" loading="lazy" alt="mail icon - white" class="contact-icons"/></a><a href="https://www.facebook.com/mugicmotion/" target="_blank" class="contact_facebook w-inline-block"><img src="https://cdn.prod.website-files.com/66521f39ad9f5f9fd9e981de/6652bbf38b360cc1f35920f3_Vectors-Wrapper.svg" loading="lazy" alt="Facebook Logo White" class="contact-icons"/></a><a href="https://www.instagram.com/mugicmotion/" target="_blank" class="contact_instagram w-inline-block"><img src="https://cdn.prod.website-files.com/66521f39ad9f5f9fd9e981de/6652bbf48b360cc1f3592109_Vectors-Wrapper.svg" loading="lazy" alt="Instagram Logo White" class="contact-icons"/></a><a href="https://www.youtube.com/channel/UCWsIBAjaagKaSP1qjCvgeLw" target="_blank" class="contact_youtube w-inline-block"><img src="https://cdn.prod.website-files.com/66521f39ad9f5f9fd9e981de/6652bbf48b360cc1f3592125_Vectors-Wrapper.svg" loading="lazy" alt="Youtube Logo White" class="contact-icons"/></a><a href="https://discord.gg/2Fg8p7fDpe" target="_blank" class="contact_discord w-inline-block"><img src="https://cdn.prod.website-files.com/66521f39ad9f5f9fd9e981de/6694208a3dc19067ead14137_discord-icon.svg" loading="lazy" alt=""/></a></div>
+                </div>
+            </section>
+        </div>
+
+        <script src="https://d3e54v103j8qbb.cloudfront.net/js/jquery-3.5.1.min.dc5e7f18c8.js?site=66521f39ad9f5f9fd9e981de" type="text/javascript" integrity="sha256-9/aliU8dGd2tb6OSsuzixeV4y/faTqgFtohetphbbj0=" crossorigin="anonymous"></script><script src="https://cdn.prod.website-files.com/66521f39ad9f5f9fd9e981de/js/webflow.b6f82a8f8.js" type="text/javascript"></script>
+    </body>
+</html>
