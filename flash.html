@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MUGIC Firmware Flasher</title>
+  <style>
+    :root { --accent:#9b1f7a; --ok:#1a7f37; --warn:#b45309; --err:#b91c1c; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, "Segoe UI", Arial, sans-serif;
+      max-width: 720px; margin: 0 auto; padding: 24px; color: #1a1a1a; background: #fafafa;
+    }
+    h1 { font-size: 22px; margin: 0 0 4px; }
+    .sub { color: #666; margin: 0 0 20px; }
+    .card { background: #fff; border: 1px solid #e3e3e3; border-radius: 12px; padding: 16px 18px; margin: 14px 0; }
+    .note { background: #fff8e6; border: 1px solid #f0d98a; border-radius: 10px; padding: 10px 14px; font-size: 14px; margin: 10px 0; }
+    .note b { color: var(--warn); }
+    button {
+      font: inherit; font-weight: 600; border: none; border-radius: 8px; padding: 9px 16px;
+      cursor: pointer; color: #fff; background: var(--accent);
+    }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+    button.secondary { background: #555; }
+    label.radio { display: block; margin: 6px 0; font-size: 15px; cursor: pointer; }
+    input[type=file] { font: inherit; margin-top: 6px; }
+    progress { width: 100%; height: 16px; margin-top: 10px; }
+    #log {
+      white-space: pre-wrap; font-family: ui-monospace, Menlo, monospace; font-size: 12.5px;
+      background: #111; color: #d6d6d6; border-radius: 8px; padding: 12px; height: 190px;
+      overflow-y: auto; margin-top: 14px;
+    }
+    .status { font-weight: 600; margin-top: 8px; }
+    .status.ok { color: var(--ok); } .status.err { color: var(--err); }
+    details { margin-top: 8px; } summary { cursor: pointer; font-weight: 600; color: var(--err); }
+    .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .hidden { display: none; }
+    code { background: #eee; padding: 1px 5px; border-radius: 4px; }
+    a { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <h1>MUGIC Firmware Flasher</h1>
+  <p class="sub">Update your MUGIC device over the USB-C cable — no terminal needed.</p>
+
+  <div class="note">
+    <b>Before you start:</b>
+    Use <b>Google Chrome</b> or <b>Microsoft Edge</b> (Safari and Firefox are not supported).
+    Plug the device in with a USB-C <b>data</b> cable (not a charge-only cable).
+    If no device appears when you click Connect, install the free
+    <a href="https://www.wch-ic.com/downloads/CH34XSER_MAC_ZIP.html" target="_blank" rel="noopener">CH34x USB driver</a>
+    (macOS 13+ usually has it built in; Windows normally needs it once), then reconnect.
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <button id="connectBtn">1. Connect device</button>
+      <span id="connStatus" class="status">Not connected</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin:0 0 10px;">2. Choose firmware (main.bin)</h3>
+    <label class="radio">
+      <input type="radio" name="src" value="file" checked />
+      Choose a <code>main.bin</code> file from my computer
+      <div><input type="file" id="appFile" accept=".bin" /></div>
+    </label>
+    <label class="radio">
+      <input type="radio" name="src" value="bundled" />
+      Use the firmware included with this page (only if a <code>main.bin</code> is hosted here)
+    </label>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <button id="flashBtn" disabled>3. Update firmware</button>
+      <span id="flashStatus" class="status"></span>
+    </div>
+    <progress id="prog" class="hidden" value="0" max="100"></progress>
+
+    <details id="advanced">
+      <summary>Advanced: full flash (rarely needed)</summary>
+      <div class="note">
+        <b>Most people should never use this.</b> Your MUGIC ships with a working system.
+        A full flash rewrites the bootloader, partition table and OTA data, and is only needed
+        if the <b>partition table changed</b>. Doing it with the wrong files can brick the device.
+      </div>
+      <div class="row" style="margin-top:8px">
+        <div>bootloader.bin (0x0): <input type="file" id="f_boot" accept=".bin" /></div>
+      </div>
+      <div class="row"><div>partition-table.bin (0x8000): <input type="file" id="f_part" accept=".bin" /></div></div>
+      <div class="row"><div>ota_data_initial.bin (0x19000): <input type="file" id="f_ota" accept=".bin" /></div></div>
+      <div class="row"><div>main.bin (0x20000): <input type="file" id="f_main" accept=".bin" /></div></div>
+      <div class="row" style="margin-top:8px">
+        <button id="fullFlashBtn" class="secondary" disabled>Full flash (danger)</button>
+      </div>
+    </details>
+  </div>
+
+  <div id="log"></div>
+
+  <script type="module">
+    import { ESPLoader, Transport } from "https://unpkg.com/esptool-js@0.4.6/bundle.js";
+
+    // --- Fixed flash parameters for the MUGIC board (ESP32-C2 / ESP8684) ---
+    // Mirrors idf.py's flasher_args.json: dio / 60m / 4MB, full-flash offsets below.
+    const CHIP_BAUD   = 460800;
+    const FLASH_OPTS  = { flashSize: "4MB", flashMode: "dio", flashFreq: "60m" };
+    const APP_OFFSET  = 0x20000;
+    const BUNDLED_APP = "./main.bin";          // firmware shipped next to this page
+    const FULL_FLASH  = [                       // offset -> <input id>
+      { addr: 0x0,     id: "f_boot", name: "bootloader.bin" },
+      { addr: 0x8000,  id: "f_part", name: "partition-table.bin" },
+      { addr: 0x19000, id: "f_ota",  name: "ota_data_initial.bin" },
+      { addr: 0x20000, id: "f_main", name: "main.bin" },
+    ];
+
+    const $ = (id) => document.getElementById(id);
+    const logEl = $("log");
+    const term = {
+      clean() { logEl.textContent = ""; },
+      writeLine(s) { logEl.textContent += s + "\n"; logEl.scrollTop = logEl.scrollHeight; },
+      write(s) { logEl.textContent += s; logEl.scrollTop = logEl.scrollHeight; },
+    };
+    const log = (s) => term.writeLine(s);
+
+    let transport = null, esploader = null, connected = false;
+
+    // WebSerial requires a secure context (https or localhost). file:// is often blocked.
+    if (!("serial" in navigator)) {
+      log("ERROR: This browser has no Web Serial support. Use Chrome or Edge, served over https or localhost.");
+    }
+
+    // radio + file toggles
+    document.querySelectorAll('input[name=src]').forEach(r =>
+      r.addEventListener("change", () => {
+        $("appFile").disabled = (document.querySelector('input[name=src]:checked').value !== "file");
+      }));
+
+    $("connectBtn").addEventListener("click", connect);
+    $("flashBtn").addEventListener("click", () => flashApp());
+    $("fullFlashBtn").addEventListener("click", () => fullFlash());
+    // enable full-flash button only once all 4 files are chosen
+    FULL_FLASH.forEach(f => $(f.id).addEventListener("change", () => {
+      $("fullFlashBtn").disabled = !(connected && FULL_FLASH.every(x => $(x.id).files.length));
+    }));
+
+    async function connect() {
+      try {
+        const port = await navigator.serial.requestPort();
+        transport = new Transport(port, true);
+        esploader = new ESPLoader({ transport, baudrate: CHIP_BAUD, romBaudrate: 115200, terminal: term });
+        $("connStatus").textContent = "Connecting…";
+        const chip = await esploader.main();
+        connected = true;
+        $("connStatus").textContent = "Connected: " + chip;
+        $("connStatus").className = "status ok";
+        $("flashBtn").disabled = false;
+        log("Connected to " + chip);
+      } catch (e) {
+        $("connStatus").textContent = "Connection failed";
+        $("connStatus").className = "status err";
+        log("Connect error: " + (e?.message || e));
+      }
+    }
+
+    // Convert an ArrayBuffer to the binary (latin1) string esptool-js expects.
+    function bufToBinaryString(buf) {
+      const u8 = new Uint8Array(buf);
+      let out = "", CH = 0x8000;
+      for (let i = 0; i < u8.length; i += CH)
+        out += String.fromCharCode.apply(null, u8.subarray(i, i + CH));
+      return out;
+    }
+
+    async function readSource() {
+      const src = document.querySelector('input[name=src]:checked').value;
+      if (src === "file") {
+        const f = $("appFile").files[0];
+        if (!f) throw new Error("Choose a main.bin file first.");
+        return bufToBinaryString(await f.arrayBuffer());
+      }
+      // bundled: fetch main.bin sitting next to this page
+      const resp = await fetch(BUNDLED_APP, { cache: "no-store" });
+      if (!resp.ok) throw new Error("Could not load the included main.bin (" + resp.status +
+        "). Host this page over https/localhost, or choose a file instead.");
+      return bufToBinaryString(await resp.arrayBuffer());
+    }
+
+    async function writeFiles(fileArray) {
+      $("prog").classList.remove("hidden");
+      await esploader.writeFlash({
+        fileArray,
+        ...FLASH_OPTS,
+        eraseAll: false,
+        compress: true,
+        reportProgress: (i, written, total) => { $("prog").value = Math.round((written / total) * 100); },
+      });
+      await esploader.after();   // hard reset into the new firmware
+    }
+
+    async function flashApp() {
+      if (!connected) return;
+      setBusy(true, "flashStatus");
+      try {
+        log("Reading firmware…");
+        const data = await readSource();
+        log("Writing main.bin at 0x" + APP_OFFSET.toString(16) + " (" + data.length + " bytes)…");
+        await writeFiles([{ data, address: APP_OFFSET }]);
+        done("flashStatus", "Done — device restarted with new firmware.");
+      } catch (e) {
+        fail("flashStatus", e);
+      } finally { setBusy(false, "flashStatus"); }
+    }
+
+    async function fullFlash() {
+      if (!connected) return;
+      if (!confirm("FULL FLASH — advanced.\n\nThis rewrites the bootloader, partition table and OTA data. " +
+                   "Only do this if the partition table changed. Wrong files can brick the device.\n\nContinue?"))
+        return;
+      setBusy(true, "flashStatus");
+      try {
+        const fileArray = [];
+        for (const f of FULL_FLASH) {
+          const file = $(f.id).files[0];
+          log("Reading " + f.name + "…");
+          fileArray.push({ data: bufToBinaryString(await file.arrayBuffer()), address: f.addr });
+        }
+        log("Writing 4 files (full flash)…");
+        await writeFiles(fileArray);
+        done("flashStatus", "Full flash done — device restarted.");
+      } catch (e) {
+        fail("flashStatus", e);
+      } finally { setBusy(false, "flashStatus"); }
+    }
+
+    function setBusy(b, statusId) {
+      $("flashBtn").disabled = b || !connected;
+      $("fullFlashBtn").disabled = b || !(connected && FULL_FLASH.every(x => $(x.id).files.length));
+      $("connectBtn").disabled = b;
+      if (b) { $(statusId).textContent = "Working… do not unplug."; $(statusId).className = "status"; }
+    }
+    function done(id, msg) { $(id).textContent = msg; $(id).className = "status ok"; $("prog").value = 100; log(msg); }
+    function fail(id, e) { const m = e?.message || e; $(id).textContent = "Failed: " + m; $(id).className = "status err"; log("ERROR: " + m); }
+  </script>
+</body>
+</html>
