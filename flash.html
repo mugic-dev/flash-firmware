@@ -86,6 +86,10 @@
                                           <button id="connectBtn">1. Connect device</button>
                                           <span id="connStatus" class="status">Not connected</span>
                                         </div>
+                                        <div class="row" style="margin-top:8px">
+                                          <button id="verBtn" class="secondary" disabled>Check current firmware (optional)</button>
+                                          <span id="verStatus" class="status"></span>
+                                        </div>
                                       </div>
 
                                       <div class="card">
@@ -191,6 +195,7 @@
             }));
 
           $("connectBtn").addEventListener("click", connect);
+          $("verBtn").addEventListener("click", () => checkVersion());
           $("flashBtn").addEventListener("click", () => flashApp());
           $("fullFlashBtn").addEventListener("click", () => fullFlash());
           FULL_FLASH.forEach(f => $(f.id).addEventListener("change", () => {
@@ -208,11 +213,51 @@
               $("connStatus").textContent = "Connected: " + chip;
               $("connStatus").className = "status ok";
               $("flashBtn").disabled = false;
+              $("verBtn").disabled = false;
               log("Connected to " + chip);
             } catch (e) {
               $("connStatus").textContent = "Connection failed";
               $("connStatus").className = "status err";
               log("Connect error: " + (e?.message || e));
+            }
+          }
+
+          // Read the ESP-IDF app descriptor (esp_app_desc_t) from the app partition (ota_0 @ 0x20000)
+          // and show the firmware version. The struct sits at offset 0x20 into the app image; within
+          // it: version@16, project_name@48, time@80, date@96, idf_ver@112.
+          async function checkVersion() {
+            if (!connected) return;
+            $("verStatus").textContent = "Reading…"; $("verStatus").className = "status";
+            try {
+              if (typeof esploader.readFlash !== "function")
+                throw new Error("readFlash not available in this esptool-js build");
+              const APP_ADDR = 0x20000, LEN = 0x100;
+              let data = await esploader.readFlash(APP_ADDR, LEN, () => {});
+              data = new Uint8Array(data);
+              const D = 0x20;   // esp_app_desc_t offset within the app image
+              const magic = (data[D] | (data[D+1]<<8) | (data[D+2]<<16) | (data[D+3]<<24)) >>> 0;
+              if (magic !== 0xABCD5432) {
+                $("verStatus").textContent = "No valid firmware descriptor found.";
+                $("verStatus").className = "status err";
+                log("App descriptor magic mismatch: 0x" + magic.toString(16));
+                return;
+              }
+              const str = (off, len) => {
+                let s = "";
+                for (let i = 0; i < len; i++) { const c = data[D + off + i]; if (!c) break; s += String.fromCharCode(c); }
+                return s;
+              };
+              const version = str(16, 32), project = str(48, 32);
+              const time = str(80, 16), date = str(96, 16), idf = str(112, 32);
+              const msg = "Firmware " + (version || "(unknown)") + (project ? " · " + project : "") +
+                          (date ? " · built " + date + " " + time : "") + (idf ? " · IDF " + idf : "");
+              $("verStatus").textContent = msg;
+              $("verStatus").className = "status ok";
+              log(msg);
+            } catch (e) {
+              $("verStatus").textContent = "Could not read version: " + (e?.message || e);
+              $("verStatus").className = "status err";
+              log("Version read error: " + (e?.message || e));
             }
           }
 
@@ -303,6 +348,7 @@
 
           function setBusy(b, statusId) {
             $("flashBtn").disabled = b || !connected;
+            $("verBtn").disabled = b || !connected;
             $("fullFlashBtn").disabled = b || !(connected && FULL_FLASH.every(x => $(x.id).files.length));
             $("connectBtn").disabled = b;
             if (b) { $(statusId).textContent = "Working… do not unplug."; $(statusId).className = "status"; }
