@@ -86,10 +86,7 @@
                                           <button id="connectBtn">1. Connect device</button>
                                           <span id="connStatus" class="status">Not connected</span>
                                         </div>
-                                        <div class="row" style="margin-top:8px">
-                                          <button id="verBtn" class="secondary" disabled>Check current firmware (optional)</button>
-                                          <span id="verStatus" class="status"></span>
-                                        </div>
+                                        <div id="verStatus" class="status" style="margin-top:8px"></div>
                                       </div>
 
                                       <div class="card">
@@ -195,7 +192,6 @@
             }));
 
           $("connectBtn").addEventListener("click", connect);
-          $("verBtn").addEventListener("click", () => checkVersion());
           $("flashBtn").addEventListener("click", () => flashApp());
           $("fullFlashBtn").addEventListener("click", () => fullFlash());
           FULL_FLASH.forEach(f => $(f.id).addEventListener("change", () => {
@@ -213,8 +209,8 @@
               $("connStatus").textContent = "Connected: " + chip;
               $("connStatus").className = "status ok";
               $("flashBtn").disabled = false;
-              $("verBtn").disabled = false;
               log("Connected to " + chip);
+              await checkVersion();   // auto-read + show the installed firmware version
             } catch (e) {
               $("connStatus").textContent = "Connection failed";
               $("connStatus").className = "status err";
@@ -348,7 +344,6 @@
 
           function setBusy(b, statusId) {
             $("flashBtn").disabled = b || !connected;
-            $("verBtn").disabled = b || !connected;
             $("fullFlashBtn").disabled = b || !(connected && FULL_FLASH.every(x => $(x.id).files.length));
             $("connectBtn").disabled = b;
             if (b) { $(statusId).textContent = "Working… do not unplug."; $(statusId).className = "status"; }
