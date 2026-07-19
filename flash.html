@@ -17,7 +17,7 @@
         <style>
           /* Flasher widget styles, scoped to .flasher so the Webflow page layout is untouched. */
           .flasher { --accent:#9b1f7a; --ok:#1a7f37; --warn:#b45309; --err:#b91c1c;
-            font-family: 'Poppins', -apple-system, "Segoe UI", Arial, sans-serif; color:#1a1a1a; max-width:720px; }
+            font-family: 'Poppins', -apple-system, "Segoe UI", Arial, sans-serif; color:#1a1a1a; width:100%; }
           .flasher * { box-sizing: border-box; }
           .flasher .card { background:#fff; border:1px solid #e3e3e3; border-radius:12px; padding:16px 18px; margin:14px 0; }
           .flasher .card h3 { margin:0 0 10px; font-size:16px; }
@@ -68,19 +68,36 @@
                         <div class="padding-section-large">
                             <div class="ble_content">
                                 <div class="text-content_component">
+                                    <h1 class="heading-style-h3">Firmware Update</h1>
+                                    <div class="ble_text-content">
+                                        <p class="max-width-medium">Update your MUGIC® device over the USB-C cable, right from your browser — no terminal or install needed. Connect the device, choose a firmware file, and click Update.</p>
+                                    </div>
+                                    <div class="ble_text-content">
+                                        <p class="max-width-medium">For the occasional upgrade, an <strong>over-the-air (OTA) update</strong> is the easier way and should be your first choice. Use this page instead when:</p>
+                                        <ul role="list">
+                                            <li>OTA is failing or unavailable — this happens with firmware 1.x, or</li>
+                                            <li>you need to flash several devices in a row.</li>
+                                        </ul>
+                                    </div>
+                                    <div class="ble_text-content">
+                                        <p class="max-width-medium"><strong>Before you start:</strong></p>
+                                        <ul role="list">
+                                            <li>Use <strong>Google Chrome</strong> or <strong>Microsoft Edge</strong> (Safari and Firefox are not supported). If no device appears when you click Connect, install the free <a href="https://www.wch-ic.com/downloads/CH34XSER_MAC_ZIP.html" target="_blank" rel="noopener">CH34x USB driver</a> (macOS 13+ usually has it built in; Windows normally needs it once), then reconnect.</li>
+                                            <li>Use a USB-C <strong>data</strong> cable — one that can sync a phone or transfer files. The cable that came with your MUGIC is <strong>power-only</strong> and will not work for flashing.</li>
+                                        </ul>
+                                    </div>
+                                    <div class="ble_text-content">
+                                        <p class="max-width-medium">Then, on the right:</p>
+                                        <ul role="list">
+                                            <li>Connect the device — the installed firmware version is shown automatically.</li>
+                                            <li>Choose the <code>main.bin</code> firmware file (from your computer, or the one included with this page).</li>
+                                            <li>Click Update firmware and wait — do not unplug until it finishes. The device restarts into the new firmware.</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <div class="text-content_component">
                                     <h1 class="heading-style-h3">Firmware Flasher</h1>
                                     <div class="flasher">
-                                      <p class="lead">Update your MUGIC device over the USB-C cable — no terminal needed.</p>
-
-                                      <div class="note">
-                                        <b>Before you start:</b>
-                                        Use <b>Google Chrome</b> or <b>Microsoft Edge</b> (Safari and Firefox are not supported).
-                                        Plug the device in with a USB-C <b>data</b> cable (not a charge-only cable).
-                                        If no device appears when you click Connect, install the free
-                                        <a href="https://www.wch-ic.com/downloads/CH34XSER_MAC_ZIP.html" target="_blank" rel="noopener">CH34x USB driver</a>
-                                        (macOS 13+ usually has it built in; Windows normally needs it once), then reconnect.
-                                      </div>
-
                                       <div class="card">
                                         <div class="row">
                                           <button id="connectBtn">1. Connect device</button>
