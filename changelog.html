@@ -17,6 +17,10 @@
         <link href="https://cdn.prod.website-files.com/66521f39ad9f5f9fd9e981de/665960f304575e7ce9912cb8_mugic-webclip%20-%20black.jpg" rel="apple-touch-icon"/>
         <style>
           /* Changelog styles, scoped to .changelog so the Webflow page layout is untouched. */
+          /* The Webflow .ble_content wrapper is a 2-column grid (1fr 1fr) and the
+             changelog only fills the first column, so it looked half-width. Collapse
+             it to a single column on this page so the notes span the full content width. */
+          .ble_content { grid-template-columns: 1fr; }
           .changelog { --accent:#9b1f7a; --new:#1a7f37; --ship:#555;
             font-family: 'Poppins', -apple-system, "Segoe UI", Arial, sans-serif; color:#1a1a1a; }
           .changelog * { box-sizing: border-box; }
