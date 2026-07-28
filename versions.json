@@ -1,7 +1,8 @@
 {
-  "latest": "2.1.4",
+  "latest": "2.1.6",
   "versions": [
-    { "version": "2.1.4", "file": "main-2.1.4.bin", "label": "latest" },
+    { "version": "2.1.6", "file": "main-2.1.6.bin", "label": "latest" },
+    { "version": "2.1.4", "file": "main-2.1.4.bin" },
     { "version": "2.1.3", "file": "main-2.1.3.bin" },
     { "version": "2.0.1", "file": "main-2.0.1.bin", "label": "original" }
   ]
