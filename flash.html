@@ -40,6 +40,14 @@
           .flasher select { font:inherit; padding:6px 8px; border:1px solid #cfcfcf; border-radius:8px; background:#fff; }
           .flasher code { background:#eee; padding:1px 5px; border-radius:4px; }
           .flasher p.lead { color:#444; font-size:16px; margin:0 0 14px; }
+          .flasher .card p.hint { color:#444; font-size:14px; margin:0 0 10px; }
+          .flasher .orsep { text-align:center; color:#888; font-weight:600; font-size:13px;
+            letter-spacing:.08em; margin:6px 0; }
+          .flasher a.dl { display:inline-block; font:inherit; font-weight:600; color:#fff;
+            background:var(--accent); text-decoration:none; border-radius:8px; padding:9px 16px; }
+          .flasher a.dl:hover { filter:brightness(.92); }
+          .flasher a.dl.hidden { display:none; }
+          .flasher .substep { font-weight:700; font-size:14px; color:var(--accent); margin:0 0 6px; }
         </style>
     </head>
     <body>
@@ -71,7 +79,7 @@
                                 <div class="text-content_component">
                                     <h1 class="heading-style-h3">Firmware Update</h1>
                                     <div class="ble_text-content">
-                                        <p class="max-width-medium">Update your MUGIC® device over the USB-C cable, right from your browser — no terminal or install needed. Connect the device, choose a firmware file, and click Update.</p>
+                                        <p class="max-width-medium">Update your MUGIC® device over the USB-C cable, right from your browser — no terminal or install needed. Choose a firmware version, then either flash it over USB — connect the device and click Update — or simply download the file.</p>
                                         <p class="max-width-medium">Curious what changed? See the <a href="changelog.html">firmware release notes</a>.</p>
                                     </div>
                                     <div class="ble_text-content">
@@ -80,6 +88,17 @@
                                             <li>OTA is failing or unavailable, or</li>
                                             <li>you need to flash several devices in a row.</li>
                                         </ul>
+                                        <details style="margin-top:8px">
+                                            <summary style="cursor:pointer;font-weight:600">How to update over the air (OTA)</summary>
+                                            <ol role="list">
+                                                <li>Download the latest firmware using the <strong>Download firmware</strong> button on this page (step 2b, on the right), or from the <a href="changelog.html">firmware release notes</a>. You'll get a file like <code>main.bin</code>.</li>
+                                                <li>Connect to your MUGIC® in AP mode.</li>
+                                                <li>Visit <a href="http://192.168.4.1/upgrade">http://192.168.4.1/upgrade</a> in your browser.</li>
+                                                <li>On that page, click <strong>Choose File</strong> and select the firmware file from your Downloads folder.</li>
+                                                <li>Click <strong>Upload</strong>. A progress banner will eventually indicate “Progress 100%”.</li>
+                                            </ol>
+                                            <p class="max-width-medium">Wait up to a minute for validation, until the page says “Firmware upgraded. Device restarting.” The device will restart with the new firmware installed. You can reconnect to it, if needed, and verify the new version by visiting <a href="http://192.168.4.1/">http://192.168.4.1/</a>.</p>
+                                        </details>
                                     </div>
                                     <div class="ble_text-content">
                                         <p class="max-width-medium"><strong>Before you start:</strong></p>
@@ -90,26 +109,22 @@
                                     </div>
                                     <div class="ble_text-content">
                                         <p class="max-width-medium">Then, on the right:</p>
-                                        <ul role="list">
-                                            <li>Connect the device — the installed firmware version is shown automatically.</li>
-                                            <li>Choose the <code>main.bin</code> firmware file (from your computer, or the one included with this page).</li>
-                                            <li>Click Update firmware and wait — do not unplug until it finishes. The device restarts into the new firmware.</li>
-                                        </ul>
+                                        <ol role="list">
+                                            <li><strong>Choose a firmware version</strong> — the latest hosted release, or your own <code>main.bin</code> file.</li>
+                                            <li>Then do one of two things:
+                                                <ul role="list">
+                                                    <li><strong>Flash it over USB</strong> — connect the device (the installed version is shown automatically), then click Update firmware and wait; do not unplug until it finishes. The device restarts into the new firmware.</li>
+                                                    <li><strong>Or simply download</strong> the firmware file to your computer — to flash later, keep a backup, or use with the on-device OTA updater.</li>
+                                                </ul>
+                                            </li>
+                                        </ol>
                                     </div>
                                 </div>
                                 <div class="text-content_component">
                                     <h1 class="heading-style-h3">Firmware Flasher</h1>
                                     <div class="flasher">
                                       <div class="card">
-                                        <div class="row">
-                                          <button id="connectBtn">1. Connect device</button>
-                                          <span id="connStatus" class="status">Not connected</span>
-                                        </div>
-                                        <div id="verStatus" class="status" style="margin-top:8px"></div>
-                                      </div>
-
-                                      <div class="card">
-                                        <h3>2. Choose your MUGIC&reg; firmware</h3>
+                                        <h3>1. Choose your MUGIC&reg; firmware</h3>
                                         <label class="radio">
                                           <input type="radio" name="src" value="bundled" checked />
                                           Use firmware hosted on this page — choose a version:
@@ -125,9 +140,19 @@
                                         </label>
                                       </div>
 
+                                      <p class="lead" style="margin:18px 0 6px">Then do <b>one</b> of the following:</p>
+
                                       <div class="card">
+                                        <h3>2a. Flash it onto your device over USB</h3>
+                                        <div class="substep">Connect the device</div>
                                         <div class="row">
-                                          <button id="flashBtn" disabled>3. Update firmware</button>
+                                          <button id="connectBtn">Connect device</button>
+                                          <span id="connStatus" class="status">Not connected</span>
+                                        </div>
+                                        <div id="verStatus" class="status" style="margin-top:8px"></div>
+                                        <div class="substep" style="margin-top:14px">Update the firmware</div>
+                                        <div class="row">
+                                          <button id="flashBtn" disabled>Update firmware</button>
                                           <span id="flashStatus" class="status"></span>
                                         </div>
                                         <progress id="prog" class="hidden" value="0" max="100"></progress>
@@ -147,6 +172,15 @@
                                             <button id="fullFlashBtn" class="secondary" disabled>Full flash (danger)</button>
                                           </div>
                                         </details>
+                                      </div>
+
+                                      <div class="orsep">— OR —</div>
+
+                                      <div class="card">
+                                        <h3>2b. Just download the firmware file</h3>
+                                        <p class="hint">Save the firmware you selected above to your computer — handy for flashing later, keeping a backup, or using with the on-device OTA updater.</p>
+                                        <a id="downloadLink" class="dl" href="#" download>Download firmware</a>
+                                        <div id="downloadNote" class="note hidden" style="margin-top:8px"></div>
                                       </div>
 
                                       <div id="log"></div>
@@ -212,7 +246,7 @@
 
           document.querySelectorAll('input[name=src]').forEach(r =>
             r.addEventListener("change", onSrcChange));
-          $("verSelect").addEventListener("change", updateVerNote);
+          $("verSelect").addEventListener("change", () => { updateVerNote(); updateDownload(); });
           onSrcChange();   // sync enabled/disabled state with the default selection (bundled)
 
           function onSrcChange() {
@@ -220,6 +254,28 @@
             $("appFile").disabled = (src !== "file");
             $("verSelect").disabled = (src !== "bundled");
             updateVerNote();
+            updateDownload();
+          }
+
+          // Point the "just download" link (step 2b) at the selected hosted firmware. Hidden when
+          // the user picked their own local file — there is nothing to download, they already have it.
+          function updateDownload() {
+            const link = $("downloadLink"), note = $("downloadNote");
+            const src = document.querySelector('input[name=src]:checked')?.value;
+            if (src !== "bundled") {
+              link.classList.add("hidden");
+              note.textContent = "You selected a file from your own computer — it's already saved there. " +
+                "Pick a hosted version above to download one.";
+              note.classList.remove("hidden");
+              return;
+            }
+            const url = $("verSelect").value || BUNDLED_APP;
+            const fname = url.split("/").pop();
+            link.href = url;
+            link.setAttribute("download", fname);
+            link.textContent = "Download " + fname;
+            link.classList.remove("hidden");
+            note.classList.add("hidden");
           }
 
           // Show which version is selected, plus a downgrade caution when it isn't the latest.
@@ -262,6 +318,7 @@
               log("Version list unavailable (" + (e?.message || e) + "); using bundled main.bin.");
             }
             updateVerNote();
+            updateDownload();
           }
           loadVersions();
 
