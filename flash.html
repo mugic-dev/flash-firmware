@@ -88,17 +88,6 @@
                                             <li>OTA is failing or unavailable, or</li>
                                             <li>you need to flash several devices in a row.</li>
                                         </ul>
-                                        <details style="margin-top:8px">
-                                            <summary style="cursor:pointer;font-weight:600">How to update over the air (OTA)</summary>
-                                            <ol role="list">
-                                                <li>Download the latest firmware using the <strong>Download firmware</strong> button on this page (step 2b, on the right), or from the <a href="changelog.html">firmware release notes</a>. You'll get a file like <code>main.bin</code>.</li>
-                                                <li>Connect to your MUGIC® in AP mode.</li>
-                                                <li>Visit <a href="http://192.168.4.1/upgrade">http://192.168.4.1/upgrade</a> in your browser.</li>
-                                                <li>On that page, click <strong>Choose File</strong> and select the firmware file from your Downloads folder.</li>
-                                                <li>Click <strong>Upload</strong>. A progress banner will eventually indicate “Progress 100%”.</li>
-                                            </ol>
-                                            <p class="max-width-medium">Wait up to a minute for validation, until the page says “Firmware upgraded. Device restarting.” The device will restart with the new firmware installed. You can reconnect to it, if needed, and verify the new version by visiting <a href="http://192.168.4.1/">http://192.168.4.1/</a>.</p>
-                                        </details>
                                     </div>
                                     <div class="ble_text-content">
                                         <p class="max-width-medium"><strong>Before you start:</strong></p>
@@ -140,10 +129,29 @@
                                         </label>
                                       </div>
 
-                                      <p class="lead" style="margin:18px 0 6px">Then do <b>one</b> of the following:</p>
+                                      <p id="oneOfLead" class="lead" style="margin:18px 0 6px">Then do <b>one</b> of the following:</p>
+
+                                      <div id="downloadCard" class="card">
+                                        <a id="downloadLink" class="dl" href="#" download>Download firmware</a>
+                                        <div id="downloadNote" class="note hidden" style="margin-top:8px"></div>
+                                        <p class="hint">Save the firmware you selected above to your computer — handy for flashing later, keeping a backup, or using with the on-device OTA updater.</p>
+                                        <details style="margin-top:8px">
+                                            <summary style="cursor:pointer;font-weight:600">How to update over the air (OTA)</summary>
+                                            <ol role="list">
+                                                <li>Download the latest firmware using the <strong>Download firmware</strong> button on this page (step 2b, on the right), or from the <a href="changelog.html">firmware release notes</a>. You'll get a file like <code>main.bin</code>.</li>
+                                                <li>Connect to your MUGIC® in AP mode.</li>
+                                                <li>Visit <a href="http://192.168.4.1/upgrade">http://192.168.4.1/upgrade</a> in your browser.</li>
+                                                <li>On that page, click <strong>Choose File</strong> and select the firmware file from your Downloads folder.</li>
+                                                <li>Click <strong>Upload</strong>. A progress banner will eventually indicate “Progress 100%”.</li>
+                                            </ol>
+                                            <p class="max-width-medium">Wait up to a minute for validation, until the page says “Firmware upgraded. Device restarting.” The device will restart with the new firmware installed. You can reconnect to it, if needed, and verify the new version by visiting <a href="http://192.168.4.1/">http://192.168.4.1/</a>.</p>
+                                        </details>
+                                      </div>
+
+                                      <div id="orSep" class="orsep">— OR —</div>
 
                                       <div class="card">
-                                        <h3>2a. Flash it onto your device over USB</h3>
+                                        <h3>Flash it onto your device over USB</h3>
                                         <div class="substep">Connect the device</div>
                                         <div class="row">
                                           <button id="connectBtn">Connect device</button>
@@ -172,15 +180,6 @@
                                             <button id="fullFlashBtn" class="secondary" disabled>Full flash (danger)</button>
                                           </div>
                                         </details>
-                                      </div>
-
-                                      <div class="orsep">— OR —</div>
-
-                                      <div class="card">
-                                        <h3>2b. Just download the firmware file</h3>
-                                        <p class="hint">Save the firmware you selected above to your computer — handy for flashing later, keeping a backup, or using with the on-device OTA updater.</p>
-                                        <a id="downloadLink" class="dl" href="#" download>Download firmware</a>
-                                        <div id="downloadNote" class="note hidden" style="margin-top:8px"></div>
                                       </div>
 
                                       <div id="log"></div>
@@ -257,25 +256,20 @@
             updateDownload();
           }
 
-          // Point the "just download" link (step 2b) at the selected hosted firmware. Hidden when
-          // the user picked their own local file — there is nothing to download, they already have it.
+          // Point the download link at the selected hosted firmware. A download only makes sense
+          // for a hosted version — if the user is uploading their own main.bin, the only action is
+          // to flash it, so hide the whole download / "OR" path (lead, card, and separator).
           function updateDownload() {
-            const link = $("downloadLink"), note = $("downloadNote");
-            const src = document.querySelector('input[name=src]:checked')?.value;
-            if (src !== "bundled") {
-              link.classList.add("hidden");
-              note.textContent = "You selected a file from your own computer — it's already saved there. " +
-                "Pick a hosted version above to download one.";
-              note.classList.remove("hidden");
-              return;
-            }
+            const bundled = document.querySelector('input[name=src]:checked')?.value === "bundled";
+            $("oneOfLead").classList.toggle("hidden", !bundled);
+            $("downloadCard").classList.toggle("hidden", !bundled);
+            $("orSep").classList.toggle("hidden", !bundled);
+            if (!bundled) return;
             const url = $("verSelect").value || BUNDLED_APP;
             const fname = url.split("/").pop();
-            link.href = url;
-            link.setAttribute("download", fname);
-            link.textContent = "Download " + fname;
-            link.classList.remove("hidden");
-            note.classList.add("hidden");
+            $("downloadLink").href = url;
+            $("downloadLink").setAttribute("download", fname);
+            $("downloadLink").textContent = "Download " + fname;
           }
 
           // Show which version is selected, plus a downgrade caution when it isn't the latest.
