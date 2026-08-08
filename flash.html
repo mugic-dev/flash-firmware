@@ -367,27 +367,32 @@
           // (which is why the device looked stuck after connect/flash).
           async function hardReset() {
             if (!transport) return;
-            log("Restarting device (EN reset)…");
+            log("Restarting device (watchdog reset)…");
             try {
-              // Classic hard reset, but set BOTH lines in ONE setSignals() call each. esptool-js's
-              // setRTS() sets RTS then re-applies DTR as a SEPARATE transfer; on CH34x/Chrome that
-              // leaves a glitch window where IO0/boot dips low exactly as EN releases, so the chip
-              // latches download mode. Setting both atomically (like esptool.py, which resets this
-              // board fine over RTS) keeps IO0 HIGH on release, so it boots the app.
-              const port = transport.device;
-              const sig = (dtr, rts) => port.setSignals({ dataTerminalReady: dtr, requestToSend: rts });
-              await sig(false, true);    // IO0 HIGH, EN LOW  -> hold in reset
-              await new Promise(r => setTimeout(r, 100));
-              await sig(false, false);   // IO0 HIGH, EN HIGH -> release atomically, boots the app
-              await new Promise(r => setTimeout(r, 300));
-              log("Reset pulse sent — device should be running its firmware now.");
+              if (typeof esploader.writeReg !== "function") throw new Error("writeReg unavailable");
+              // The EN-pin (DTR/RTS) reset can't reliably select app-boot on this CH34x board — any
+              // glitch defaults to download mode. So trigger an INTERNAL reset instead: esptool's
+              // --after watchdog_reset. First hold IO0/boot HIGH and EN idle (no line transition
+              // during the reset), then arm the RTC watchdog to reset the system. On the next boot
+              // the chip samples IO0 high -> runs the app.
+              try { await transport.device.setSignals({ dataTerminalReady: false, requestToSend: false }); } catch (e) {}
+              // ESP32-C2 RTC_CNTL watchdog registers; config value ported from esptool's ESP32-C3
+              // watchdog_reset(): (1<<31)|(5<<28)|(1<<8)|2 = 0xD0000102 (enable, stage0 = reset system).
+              const WKEY = 0x50D83AA1;
+              await esploader.writeReg(0x6000809C, WKEY);        // WDTWPROTECT: unlock
+              await esploader.writeReg(0x60008088, 2000);        // WDTCONFIG1: timeout (RTC ticks)
+              await esploader.writeReg(0x60008084, 0xD0000102);  // WDTCONFIG0: enable + reset system
+              await esploader.writeReg(0x6000809C, 0);           // WDTWPROTECT: lock
+              await new Promise(r => setTimeout(r, 500));         // let the watchdog fire + app boot
+              log("Watchdog reset triggered — device should be running its firmware now.");
             } catch (e) {
-              // Fall back to the (non-atomic) transport helpers if setSignals is unavailable.
+              log("Watchdog reset failed (" + (e?.message || e) + "); falling back to EN pulse…");
               try {
-                await transport.setDTR(false);
-                await transport.setRTS(true);
+                const port = transport.device;
+                await port.setSignals({ dataTerminalReady: false, requestToSend: true });
                 await new Promise(r => setTimeout(r, 100));
-                await transport.setRTS(false);
+                await port.setSignals({ dataTerminalReady: false, requestToSend: false });
+                await new Promise(r => setTimeout(r, 300));
               } catch (e2) { log("Reset FAILED: " + (e2?.message || e2)); }
             }
           }
