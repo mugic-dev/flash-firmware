@@ -30,8 +30,10 @@
           .flasher label.radio { display:block; margin:6px 0; font-size:15px; cursor:pointer; }
           .flasher input[type=file] { font:inherit; margin-top:6px; }
           .flasher progress { width:100%; height:16px; margin-top:10px; }
-          .flasher #log { white-space:pre-wrap; font-family:ui-monospace, Menlo, monospace; font-size:12.5px;
-            background:#111; color:#d6d6d6; border-radius:8px; padding:12px; height:190px; overflow-y:auto; margin-top:14px; }
+          .flasher #log { white-space:pre-wrap; overflow-wrap:anywhere; word-break:break-word;
+            font-family:ui-monospace, Menlo, monospace; font-size:12.5px; background:#111; color:#d6d6d6;
+            border-radius:8px; padding:12px; height:190px; width:100%; max-width:100%;
+            overflow-y:auto; overflow-x:hidden; margin-top:14px; }
           .flasher .status { font-weight:600; margin-top:8px; }
           .flasher .status.ok { color:var(--ok); } .flasher .status.err { color:var(--err); }
           .flasher details { margin-top:8px; } .flasher summary { cursor:pointer; font-weight:600; color:var(--err); }
@@ -155,9 +157,11 @@
                                         <div class="substep">Connect the device</div>
                                         <div class="row">
                                           <button id="connectBtn">Connect device</button>
+                                          <button id="disconnectBtn" class="secondary hidden">Disconnect</button>
                                           <span id="connStatus" class="status">Not connected</span>
                                         </div>
                                         <div id="verStatus" class="status" style="margin-top:8px"></div>
+                                        <p class="hint" style="margin-top:8px">Connecting only reads your device’s current firmware version — you don’t have to flash. Click <b>Disconnect</b> (or just unplug) when you are done.</p>
                                         <div class="substep" style="margin-top:14px">Update the firmware</div>
                                         <div class="row">
                                           <button id="flashBtn" disabled>Update firmware</button>
@@ -237,7 +241,7 @@
           };
           const log = (s) => term.writeLine(s);
 
-          let transport = null, esploader = null, connected = false;
+          let transport = null, esploader = null, connected = false, activePort = null, gen = 0;
 
           if (!("serial" in navigator)) {
             log("ERROR: This browser has no Web Serial support. Use Chrome or Edge, served over https or localhost.");
@@ -317,30 +321,81 @@
           loadVersions();
 
           $("connectBtn").addEventListener("click", connect);
+          $("disconnectBtn").addEventListener("click", disconnect);
+          // Recover gracefully if the USB cable is pulled out from under us.
+          if (navigator.serial && navigator.serial.addEventListener) {
+            navigator.serial.addEventListener("disconnect", (ev) => {
+              if (!activePort || ev.target !== activePort) return;
+              gen++;                       // invalidate any in-flight connect/flash
+              transport = null; esploader = null; activePort = null; connected = false;
+              setConnectedUI(false);
+              $("connStatus").textContent = "Device unplugged"; $("connStatus").className = "status err";
+              log("USB disconnected — reconnect the cable and click Connect device, or reload the page.");
+            });
+          }
           $("flashBtn").addEventListener("click", () => flashApp());
           $("fullFlashBtn").addEventListener("click", () => fullFlash());
           FULL_FLASH.forEach(f => $(f.id).addEventListener("change", () => {
             $("fullFlashBtn").disabled = !(connected && FULL_FLASH.every(x => $(x.id).files.length));
           }));
 
+          // Reflect connection state in the buttons: Connect when idle, Disconnect when live.
+          function setConnectedUI(isConn) {
+            connected = isConn;
+            $("connectBtn").classList.toggle("hidden", isConn);
+            $("disconnectBtn").classList.toggle("hidden", !isConn);
+            $("flashBtn").disabled = !isConn;
+            $("fullFlashBtn").disabled = !(isConn && FULL_FLASH.every(x => $(x.id).files.length));
+          }
+
+          // Best-effort close of the serial port; never throws.
+          async function teardown() {
+            try { if (transport) await transport.disconnect(); } catch (e) { /* already gone */ }
+            transport = null; esploader = null; activePort = null; connected = false;
+          }
+
           async function connect() {
+            $("connectBtn").disabled = true;
+            const myGen = ++gen;
             try {
               const port = await navigator.serial.requestPort();
+              activePort = port;
               transport = new Transport(port, true);
               esploader = new ESPLoader({ transport, baudrate: CHIP_BAUD, romBaudrate: 115200, terminal: term });
-              $("connStatus").textContent = "Connecting…";
+              $("connStatus").textContent = "Connecting…"; $("connStatus").className = "status";
               const chip = await esploader.main();
-              connected = true;
+              if (myGen !== gen) return;              // superseded (disconnected/unplugged mid-connect)
               $("connStatus").textContent = "Connected: " + chip;
               $("connStatus").className = "status ok";
-              $("flashBtn").disabled = false;
+              setConnectedUI(true);
               log("Connected to " + chip);
               await checkVersion();   // auto-read + show the installed firmware version
             } catch (e) {
-              $("connStatus").textContent = "Connection failed";
-              $("connStatus").className = "status err";
-              log("Connect error: " + (e?.message || e));
+              if (myGen !== gen) return;
+              await teardown();
+              setConnectedUI(false);
+              if (e && e.name === "NotFoundError") {   // user dismissed the port picker
+                $("connStatus").textContent = "Not connected"; $("connStatus").className = "status";
+              } else {
+                $("connStatus").textContent = "Connection failed"; $("connStatus").className = "status err";
+                log("Connect error: " + (e?.message || e));
+              }
+            } finally {
+              if (myGen === gen) $("connectBtn").disabled = false;
             }
+          }
+
+          async function disconnect() {
+            gen++;                       // supersede any in-flight connect
+            $("disconnectBtn").disabled = true;
+            await teardown();
+            setConnectedUI(false);
+            $("connStatus").textContent = "Not connected"; $("connStatus").className = "status";
+            $("verStatus").textContent = ""; $("verStatus").className = "status";
+            $("flashStatus").textContent = ""; $("flashStatus").className = "status";
+            $("prog").classList.add("hidden"); $("prog").value = 0;
+            $("disconnectBtn").disabled = false;
+            log("Disconnected.");
           }
 
           // Read the ESP-IDF app descriptor (esp_app_desc_t) from the app partition (ota_0 @ 0x20000)
@@ -472,6 +527,7 @@
             $("flashBtn").disabled = b || !connected;
             $("fullFlashBtn").disabled = b || !(connected && FULL_FLASH.every(x => $(x.id).files.length));
             $("connectBtn").disabled = b;
+            $("disconnectBtn").disabled = b;
             if (b) { $(statusId).textContent = "Working… do not unplug."; $(statusId).className = "status"; }
           }
           function done(id, msg) { $(id).textContent = msg; $(id).className = "status ok"; $("prog").value = 100; log(msg); }
