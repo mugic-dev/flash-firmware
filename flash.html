@@ -367,12 +367,19 @@
           // (which is why the device looked stuck after connect/flash).
           async function hardReset() {
             if (!transport) return;
+            log("Restarting device (EN reset)…");
             try {
-              await transport.setDTR(false);   // IO0 (boot) HIGH -> normal boot
+              // Classic hard reset: hold EN low while the boot pin (IO0) stays high, then release
+              // so the chip boots the app, not the ROM bootloader. setRTS() re-applies DTR, so DTR
+              // stays low = IO0 high the whole time.
+              await transport.setDTR(false);   // IO0 (boot) HIGH
               await transport.setRTS(true);    // EN LOW  -> hold in reset
-              await new Promise(r => setTimeout(r, 100));
-              await transport.setRTS(false);   // EN HIGH -> release, boots the firmware
-            } catch (e) { log("Reset skipped: " + (e?.message || e)); }
+              await new Promise(r => setTimeout(r, 150));
+              await transport.setRTS(false);   // EN HIGH -> release, boots firmware
+              await transport.setDTR(false);   // leave lines idle (IO0 high) before the port closes
+              await new Promise(r => setTimeout(r, 400));  // give it time to boot before we close
+              log("Reset pulse sent — device should be running its firmware now.");
+            } catch (e) { log("Reset FAILED: " + (e?.message || e)); }
           }
 
           // Best-effort: reboot into the app, then close the serial port. Never throws.
