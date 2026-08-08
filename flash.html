@@ -194,6 +194,7 @@
                     </div>
                 </div>
             </div>
+            <div class="padding-global"><div class="container-medium" style="padding-bottom:36px"><p style="text-align:center; color:#888; font-size:13px; margin:0">Last updated: <span id="lastUpdated">…</span></p></div></div>
             <section class="footer-dark">
                 <div class="footer-wrapper">
                     <a href="#" class="nav_logo-2 w-inline-block"><img src="https://cdn.prod.website-files.com/66521f39ad9f5f9fd9e981de/6652c18a7a4d9fdef6a765c9_mugic-logo_white.png" loading="lazy" width="228" height="Auto" alt="mugic motion logo. black mu symbol in an orange circle with he words mugicmotion next to it - dark version" class="logo-image"/></a>
@@ -319,6 +320,18 @@
             updateDownload();
           }
           loadVersions();
+
+          // Show when this page was last deployed (its own Last-Modified header) so users can
+          // tell at a glance whether they are on a fresh version. Falls back silently.
+          (async () => {
+            const el = $("lastUpdated");
+            if (!el) return;
+            try {
+              const resp = await fetch(location.href, { method: "HEAD", cache: "no-store" });
+              const lm = resp.headers.get("Last-Modified");
+              el.textContent = lm ? new Date(lm).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" }) : "unknown";
+            } catch (e) { el.textContent = "unknown"; }
+          })();
 
           $("connectBtn").addEventListener("click", connect);
           $("disconnectBtn").addEventListener("click", disconnect);
