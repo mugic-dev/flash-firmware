@@ -161,7 +161,7 @@
                                           <span id="connStatus" class="status">Not connected</span>
                                         </div>
                                         <div id="verStatus" class="status" style="margin-top:8px"></div>
-                                        <p class="hint" style="margin-top:8px">Connecting only reads your device’s current firmware version — you don’t have to flash. Click <b>Disconnect</b> (or just unplug) when you are done.</p>
+                                        <p class="hint" style="margin-top:8px">Connecting only reads your device’s current firmware version — you don’t have to flash. Click <b>Disconnect</b> when you are done — the device will restart into its firmware.</p>
                                         <div class="substep" style="margin-top:14px">Update the firmware</div>
                                         <div class="row">
                                           <button id="flashBtn" disabled>Update firmware</button>
@@ -361,8 +361,23 @@
             $("fullFlashBtn").disabled = !(isConn && FULL_FLASH.every(x => $(x.id).files.length));
           }
 
-          // Best-effort close of the serial port; never throws.
+          // Pulse EN to reboot the chip OUT of the ROM bootloader and into the app. Must run
+          // while the port is still open. Crucially drives DTR/IO0 high FIRST so it boots the app,
+          // not download mode — a plain EN pulse with IO0 still low just re-enters the bootloader
+          // (which is why the device looked stuck after connect/flash).
+          async function hardReset() {
+            if (!transport) return;
+            try {
+              await transport.setDTR(false);   // IO0 (boot) HIGH -> normal boot
+              await transport.setRTS(true);    // EN LOW  -> hold in reset
+              await new Promise(r => setTimeout(r, 100));
+              await transport.setRTS(false);   // EN HIGH -> release, boots the firmware
+            } catch (e) { log("Reset skipped: " + (e?.message || e)); }
+          }
+
+          // Best-effort: reboot into the app, then close the serial port. Never throws.
           async function teardown() {
+            try { if (transport) await hardReset(); } catch (e) { /* ignore */ }
             try { if (transport) await transport.disconnect(); } catch (e) { /* already gone */ }
             transport = null; esploader = null; activePort = null; connected = false;
           }
@@ -488,23 +503,11 @@
               compress: true,
               reportProgress: (i, written, total) => { $("prog").value = Math.round((written / total) * 100); },
             });
-            // Reset into the newly-written firmware. The write is already complete + verified at
-            // this point, so a reset hiccup must NOT fail the flash — do it best-effort. The API
-            // name has varied across esptool-js versions; fall back to toggling the RTS (reset) line.
-            try {
-              if (typeof esploader.hardReset === "function") {
-                await esploader.hardReset();
-              } else if (typeof esploader.after === "function") {
-                await esploader.after("hard_reset");
-              } else if (transport) {
-                await transport.setDTR(false);
-                await transport.setRTS(true);
-                await new Promise(r => setTimeout(r, 100));
-                await transport.setRTS(false);
-              }
-            } catch (e) {
-              log("Note: auto-reset skipped (" + (e?.message || e) + "). Unplug and replug to start the new firmware.");
-            }
+            // Reboot into the newly-written firmware. The write is complete + verified, so a
+            // reset hiccup must NOT fail the flash — hardReset() is best-effort. We use our own
+            // DTR/RTS sequence (not esploader.hardReset) so IO0/boot goes high and the chip
+            // boots the app instead of re-entering the ROM bootloader.
+            await hardReset();
           }
 
           async function flashApp() {
