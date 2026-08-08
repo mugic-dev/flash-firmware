@@ -369,17 +369,27 @@
             if (!transport) return;
             log("Restarting device (EN reset)…");
             try {
-              // Classic hard reset: hold EN low while the boot pin (IO0) stays high, then release
-              // so the chip boots the app, not the ROM bootloader. setRTS() re-applies DTR, so DTR
-              // stays low = IO0 high the whole time.
-              await transport.setDTR(false);   // IO0 (boot) HIGH
-              await transport.setRTS(true);    // EN LOW  -> hold in reset
-              await new Promise(r => setTimeout(r, 150));
-              await transport.setRTS(false);   // EN HIGH -> release, boots firmware
-              await transport.setDTR(false);   // leave lines idle (IO0 high) before the port closes
-              await new Promise(r => setTimeout(r, 400));  // give it time to boot before we close
+              // Classic hard reset, but set BOTH lines in ONE setSignals() call each. esptool-js's
+              // setRTS() sets RTS then re-applies DTR as a SEPARATE transfer; on CH34x/Chrome that
+              // leaves a glitch window where IO0/boot dips low exactly as EN releases, so the chip
+              // latches download mode. Setting both atomically (like esptool.py, which resets this
+              // board fine over RTS) keeps IO0 HIGH on release, so it boots the app.
+              const port = transport.device;
+              const sig = (dtr, rts) => port.setSignals({ dataTerminalReady: dtr, requestToSend: rts });
+              await sig(false, true);    // IO0 HIGH, EN LOW  -> hold in reset
+              await new Promise(r => setTimeout(r, 100));
+              await sig(false, false);   // IO0 HIGH, EN HIGH -> release atomically, boots the app
+              await new Promise(r => setTimeout(r, 300));
               log("Reset pulse sent — device should be running its firmware now.");
-            } catch (e) { log("Reset FAILED: " + (e?.message || e)); }
+            } catch (e) {
+              // Fall back to the (non-atomic) transport helpers if setSignals is unavailable.
+              try {
+                await transport.setDTR(false);
+                await transport.setRTS(true);
+                await new Promise(r => setTimeout(r, 100));
+                await transport.setRTS(false);
+              } catch (e2) { log("Reset FAILED: " + (e2?.message || e2)); }
+            }
           }
 
           // Best-effort: reboot into the app, then close the serial port. Never throws.
