@@ -237,7 +237,10 @@
           const logEl = $("log");
           const term = {
             clean() { logEl.textContent = ""; },
-            writeLine(s) { logEl.textContent += s + "\n"; logEl.scrollTop = logEl.scrollHeight; },
+            writeLine(s) {
+              if (/^\s*MAC:/i.test(s)) return;   // hide the chip eFuse MAC — not the manufacturer label MAC
+              logEl.textContent += s + "\n"; logEl.scrollTop = logEl.scrollHeight;
+            },
             write(s) { logEl.textContent += s; logEl.scrollTop = logEl.scrollHeight; },
           };
           const log = (s) => term.writeLine(s);
@@ -419,12 +422,6 @@
               $("connStatus").className = "status ok";
               setConnectedUI(true);
               log("Connected to " + chip);
-              try {                                   // MAC lives in eFuse — best-effort, never blocks connect
-                const mac = esploader.chip && esploader.chip.readMac
-                  ? await esploader.chip.readMac(esploader) : null;
-                if (myGen !== gen) return;            // unplugged during the read
-                if (mac) { $("connStatus").textContent = "Connected: " + chip + " · MAC " + mac; log("MAC: " + mac); }
-              } catch (e) { log("MAC unavailable: " + (e?.message || e)); }
               await checkVersion();   // auto-read + show the installed firmware version
             } catch (e) {
               if (myGen !== gen) return;
