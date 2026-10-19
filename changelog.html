@@ -79,9 +79,21 @@
 
                                       <div class="release">
                                         <div class="rel-head">
-                                          <h2 class="ver">Version 2.2.1</h2>
+                                          <h2 class="ver">Version 2.2.2</h2>
                                           <span class="date">October 2026</span>
                                           <span class="badge new">New update</span>
+                                          <a class="dl" href="main-2.2.2.bin" download>Download main-2.2.2.bin</a>
+                                        </div>
+                                        <ul>
+                                          <li><b>Each mode keeps its own data format.</b> WiFi, Bluetooth and USB now each remember their own output format, so switching modes with a double-tap no longer leaves the wrong format behind (for example ASCII still on after going from USB back to WiFi). USB sends ASCII or JSON (ASCII by default; OSC is binary and isn't sent over USB), WiFi sends OSC, JSON or ASCII (OSC by default), and Bluetooth sends OSC. If your MUGIC was left on ASCII in WiFi mode, set it back to OSC once in the configurator.</li>
+                                          <li><b>More detailed logs.</b> Mode and format changes, and who requested them, are now recorded in the device log, which helps us diagnose problems.</li>
+                                        </ul>
+                                      </div>
+
+                                      <div class="release">
+                                        <div class="rel-head">
+                                          <h2 class="ver">Version 2.2.1</h2>
+                                          <span class="date">October 2026</span>
                                           <a class="dl" href="main-2.2.1.bin" download>Download main-2.2.1.bin</a>
                                         </div>
                                         <ul>
