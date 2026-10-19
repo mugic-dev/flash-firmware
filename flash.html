@@ -246,6 +246,7 @@
           const log = (s) => term.writeLine(s);
 
           let transport = null, esploader = null, connected = false, activePort = null, gen = 0;
+          let deviceVersion = "";   // installed firmware version, read on connect
 
           if (!("serial" in navigator)) {
             log("ERROR: This browser has no Web Serial support. Use Chrome or Edge, served over https or localhost.");
@@ -456,6 +457,7 @@
           // it: version@16, project_name@48, time@80, date@96, idf_ver@112.
           async function checkVersion() {
             if (!connected) return;
+            deviceVersion = "";
             $("verStatus").textContent = "Reading…"; $("verStatus").className = "status";
             try {
               if (typeof esploader.readFlash !== "function")
@@ -477,6 +479,7 @@
                 return s;
               };
               const version = str(16, 32), project = str(48, 32);
+              deviceVersion = version;
               const time = str(80, 16), date = str(96, 16), idf = str(112, 32);
               const msg = "Firmware " + (version || "(unknown)") + (project ? " · " + project : "") +
                           (date ? " · built " + date + " " + time : "") + (idf ? " · IDF " + idf : "");
@@ -535,6 +538,15 @@
             try {
               log("Reading firmware…");
               const data = await readSource();
+              // Version string in the image's esp_app_desc_t (same layout checkVersion reads).
+              const newVersion = data.slice(0x30, 0x50).split("\0")[0];
+              if (deviceVersion && newVersion === deviceVersion &&
+                  !confirm("You already have firmware " + deviceVersion + " on this device. " +
+                           "Are you sure you want to flash it anyway?")) {
+                log("Flash cancelled — same version already installed.");
+                $("flashStatus").textContent = "Cancelled — firmware " + deviceVersion + " is already installed.";
+                return;
+              }
               log("Writing main.bin at 0x" + APP_OFFSET.toString(16) + " (" + data.length + " bytes)…");
               await writeFiles([{ data, address: APP_OFFSET }]);
               done("flashStatus", "Done — device restarted with new firmware.");
