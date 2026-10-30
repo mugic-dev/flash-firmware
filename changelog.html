@@ -79,10 +79,25 @@
 
                                       <div class="release">
                                         <div class="rel-head">
-                                          <h2 class="ver">Version 2.2.2</h2>
+                                          <h2 class="ver">Version 2.3.0</h2>
                                           <span class="date">October 2026</span>
                                           <span class="badge new">New update</span>
-                                          <a class="dl" href="main-2.2.2.bin" download>Download main-2.2.2.bin</a>
+                                        </div>
+                                        <ul>
+                                          <li><b>Ready for the MUGIC&reg; Wizard.</b> The new setup app can now read your MUGIC&reg;'s firmware version, see which WiFi networks it can reach, switch between the MUGIC&reg;'s own network and your network, and tell you why joining a network failed (wrong password, network not found…).</li>
+                                          <li><b>Your MUGIC&reg; now uses the network address printed on its label.</b> If you reserved an address for your MUGIC&reg; in your router, or registered it with your school or office IT, check it after updating: the address your network sees may change once.</li>
+                                          <li><b>Removing a destination address</b> in the configurator now stops sending to it right away, not only after a restart.</li>
+                                          <li><b>Faster recovery from a wrong WiFi password.</b> After 3 failed tries with a wrong password, the MUGIC&reg; switches to its own network (MugicConnect…) right away instead of retrying for about a minute, so you can fix the password. If your network just isn't there yet (for example the router is still starting), it keeps trying as before.</li>
+                                          <li><b>The light now shows USB mode.</b> In USB mode the light stays on the USB colour. It used to go back to the WiFi colours after the first 3 seconds, so the MUGIC&reg; looked like it was in WiFi mode when it wasn't.</li>
+                                          <li><b>WiFi passwords are no longer written to the device log.</b> Earlier versions recorded them in the log you can download from the device page.</li>
+                                        </ul>
+                                      </div>
+
+                                      <div class="release">
+                                        <div class="rel-head">
+                                          <h2 class="ver">Version 2.2.2</h2>
+                                          <span class="date">October 2026</span>
+                                                                                    <a class="dl" href="main-2.2.2.bin" download>Download main-2.2.2.bin</a>
                                         </div>
                                         <ul>
                                           <li><b>Each mode keeps its own data format.</b> WiFi, Bluetooth and USB now each remember their own output format, so switching modes with a double-tap no longer leaves the wrong format behind (for example ASCII still on after going from USB back to WiFi). USB sends ASCII or JSON (ASCII by default; OSC is binary and isn't sent over USB), WiFi sends OSC, JSON or ASCII (OSC by default), and Bluetooth sends OSC. If your MUGIC was left on ASCII in WiFi mode, set it back to OSC once in the configurator.</li>
