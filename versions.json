@@ -1,15 +1,15 @@
 {
   "latest": "2.3.1",
   "versions": [
-    { "version": "2.3.1", "file": "main-2.3.1.bin", "label": "latest" },
-    { "version": "2.3.0", "file": "main-2.3.0.bin" },
-    { "version": "2.2.2", "file": "main-2.2.2.bin" },
-    { "version": "2.2.1", "file": "main-2.2.1.bin" },
-    { "version": "2.2.0", "file": "main-2.2.0.bin" },
-    { "version": "2.1.7", "file": "main-2.1.7.bin" },
-    { "version": "2.1.6", "file": "main-2.1.6.bin" },
-    { "version": "2.1.4", "file": "main-2.1.4.bin" },
-    { "version": "2.1.3", "file": "main-2.1.3.bin" },
-    { "version": "2.0.1", "file": "main-2.0.1.bin", "label": "original" }
+    { "version": "2.3.1", "file": "main-2.3.1.bin", "label": "latest", "date": "2026-10-30" },
+    { "version": "2.3.0", "file": "main-2.3.0.bin", "date": "2026-10-30" },
+    { "version": "2.2.2", "file": "main-2.2.2.bin", "date": "2026-10-19" },
+    { "version": "2.2.1", "file": "main-2.2.1.bin", "date": "2026-10-19" },
+    { "version": "2.2.0", "file": "main-2.2.0.bin", "date": "2026-10-16" },
+    { "version": "2.1.7", "file": "main-2.1.7.bin", "date": "2026-09-28" },
+    { "version": "2.1.6", "file": "main-2.1.6.bin", "date": "2026-07-28" },
+    { "version": "2.1.4", "file": "main-2.1.4.bin", "date": "2026-07-19" },
+    { "version": "2.1.3", "file": "main-2.1.3.bin", "date": "2026-07-19" },
+    { "version": "2.0.1", "file": "main-2.0.1.bin", "label": "original", "date": "2024-10-16" }
   ]
 }

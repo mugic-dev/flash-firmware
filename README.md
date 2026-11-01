@@ -42,9 +42,9 @@ To publish a release built in the private `mugic-firmware` repo:
    (e.g. `release/main-2.1.3.bin` → `main-2.1.3.bin`).
 2. Add an entry to `versions.json` (newest first) and set `"latest"` to the new version:
    ```json
-   { "version": "2.1.3", "file": "main-2.1.3.bin", "label": "latest" }
+   { "version": "2.1.3", "file": "main-2.1.3.bin", "label": "latest", "date": "2026-07-19" }
    ```
-   Use `"label": "original"` (or omit `label`) for older entries. The page reads the embedded
+   `"date"` is the release date (`YYYY-MM-DD`, the `v<ver>` tag date); the dropdown shows it. Use `"label": "original"` (or omit `label`) for older entries. The page reads the embedded
    version straight off the device, so the filename/manifest are just labels — but keep them
    honest (each `main-<ver>.bin` should embed that same `<ver>`; check with
    `esptool.py image_info --version 2 main-<ver>.bin`).

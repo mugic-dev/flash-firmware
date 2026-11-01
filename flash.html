@@ -288,11 +288,17 @@
             const opt = sel.options[sel.selectedIndex];
             if (!bundled || !opt) { note.classList.add("hidden"); return; }
             const ver = opt.dataset.version || opt.textContent;
-            let html = "You'll flash <b>firmware " + ver + "</b>.";
+            let html = "You'll flash <b>firmware " + ver + "</b>" + (opt.dataset.date ? ", released " + opt.dataset.date : "") + ".";
             if (opt.dataset.latest !== "true")
               html += " <b>Note:</b> this is older than the latest release — reverting can reset your saved settings.";
             note.innerHTML = html;
             note.classList.remove("hidden");
+          }
+
+          // "2026-10-30" -> "Oct 30, 2026" (parsed as a local date so it doesn't shift a day).
+          function fmtDate(iso) {
+            const [y, m, d] = iso.split("-").map(Number);
+            return new Date(y, m - 1, d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
           }
 
           // Populate the version dropdown from versions.json (newest first, latest preselected).
@@ -308,8 +314,9 @@
               list.forEach(v => {
                 const o = document.createElement("option");
                 o.value = v.file;
-                o.textContent = v.version + (v.label ? " (" + v.label + ")" : "");
+                o.textContent = v.version + (v.label ? " (" + v.label + ")" : "") + (v.date ? " — " + fmtDate(v.date) : "");
                 o.dataset.version = v.version;
+                if (v.date) o.dataset.date = fmtDate(v.date);
                 o.dataset.latest = String(v.version === m.latest);
                 sel.appendChild(o);
               });
