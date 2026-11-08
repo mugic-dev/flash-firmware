@@ -224,6 +224,8 @@
           const CHIP_BAUD   = 460800;
           const FLASH_OPTS  = { flashSize: "4MB", flashMode: "dio", flashFreq: "60m" };
           const APP_OFFSET  = 0x20000;
+          const OTADATA_OFFSET = 0x19000;   // otadata (8K): which slot boots
+          const OTA1_OFFSET    = 0x1D0000;  // ota_1 (partitions.csv, 64K-aligned)
           const BUNDLED_APP = "./main.bin";          // fallback "latest" if the manifest is missing
           const MANIFEST    = "./versions.json";      // lists the hosted main-<ver>.bin releases
           const FULL_FLASH  = [                       // offset -> <input id>
@@ -462,6 +464,44 @@
           // Read the ESP-IDF app descriptor (esp_app_desc_t) from the app partition (ota_0 @ 0x20000)
           // and show the firmware version. The struct sits at offset 0x20 into the app image; within
           // it: version@16, project_name@48, time@80, date@96, idf_ver@112.
+          // Read esp_app_desc_t from the app image at addr; null if no valid image.
+          async function readAppDesc(addr) {
+            const data = new Uint8Array(await esploader.readFlash(addr, 0x100, () => {}));
+            const D = 0x20;   // esp_app_desc_t offset within the app image
+            const u32 = (o) => (data[o] | (data[o+1]<<8) | (data[o+2]<<16) | (data[o+3]<<24)) >>> 0;
+            if (u32(D) !== 0xABCD5432) return null;
+            const str = (off, len) => {
+              let s = "";
+              for (let i = 0; i < len; i++) { const c = data[D + off + i]; if (!c) break; s += String.fromCharCode(c); }
+              return s;
+            };
+            return { version: str(16, 32), project: str(48, 32), time: str(80, 16), date: str(96, 16), idf: str(112, 32) };
+          }
+
+          // CRC the bootloader checks on an otadata entry: esp_rom_crc32_le(UINT32_MAX, &ota_seq, 4).
+          function otaSeqCrc(seq) {
+            let c = 0;   // ROM crc32_le inverts its UINT32_MAX seed
+            for (let i = 0; i < 4; i++) {
+              c ^= (seq >>> (8 * i)) & 0xFF;
+              for (let k = 0; k < 8; k++) c = (c >>> 1) ^ (0xEDB88320 & -(c & 1));
+            }
+            return (~c) >>> 0;
+          }
+
+          // Which app slot the bootloader picks: the valid otadata entry (0x19000 / 0x1A000)
+          // with the highest ota_seq selects slot (seq-1) % 2; none valid -> ota_0.
+          async function readBootSlot() {
+            let best = 0;
+            for (const addr of [OTADATA_OFFSET, OTADATA_OFFSET + 0x1000]) {
+              const e = new Uint8Array(await esploader.readFlash(addr, 0x20, () => {}));
+              const u32 = (o) => (e[o] | (e[o+1]<<8) | (e[o+2]<<16) | (e[o+3]<<24)) >>> 0;
+              const seq = u32(0), state = u32(24), crc = u32(28);
+              const invalid = state === 3 || state === 4;   // ESP_OTA_IMG_INVALID / ABORTED
+              if (seq !== 0xFFFFFFFF && seq !== 0 && !invalid && crc === otaSeqCrc(seq) && seq > best) best = seq;
+            }
+            return best ? (best - 1) % 2 : 0;
+          }
+
           async function checkVersion() {
             if (!connected) return;
             deviceVersion = "";
@@ -469,27 +509,21 @@
             try {
               if (typeof esploader.readFlash !== "function")
                 throw new Error("readFlash not available in this esptool-js build");
-              const APP_ADDR = 0x20000, LEN = 0x100;
-              let data = await esploader.readFlash(APP_ADDR, LEN, () => {});
-              data = new Uint8Array(data);
-              const D = 0x20;   // esp_app_desc_t offset within the app image
-              const magic = (data[D] | (data[D+1]<<8) | (data[D+2]<<16) | (data[D+3]<<24)) >>> 0;
-              if (magic !== 0xABCD5432) {
-                $("verStatus").textContent = "No valid firmware descriptor found.";
+              const slots = [await readAppDesc(APP_OFFSET), await readAppDesc(OTA1_OFFSET)];
+              const boot = await readBootSlot();
+              const d = slots[boot];
+              if (!d) {
+                $("verStatus").textContent = "No valid firmware found in ota_" + boot + " (the slot MUGIC starts).";
                 $("verStatus").className = "status err";
-                log("App descriptor magic mismatch: 0x" + magic.toString(16));
+                log("No app descriptor in boot slot ota_" + boot);
                 return;
               }
-              const str = (off, len) => {
-                let s = "";
-                for (let i = 0; i < len; i++) { const c = data[D + off + i]; if (!c) break; s += String.fromCharCode(c); }
-                return s;
-              };
-              const version = str(16, 32), project = str(48, 32);
-              deviceVersion = version;
-              const time = str(80, 16), date = str(96, 16), idf = str(112, 32);
-              const msg = "Firmware " + (version || "(unknown)") + (project ? " · " + project : "") +
-                          (date ? " · built " + date + " " + time : "") + (idf ? " · IDF " + idf : "");
+              deviceVersion = d.version;
+              const other = slots[1 - boot];
+              const msg = "Firmware " + (d.version || "(unknown)") + (d.project ? " · " + d.project : "") +
+                          (d.date ? " · built " + d.date + " " + d.time : "") + (d.idf ? " · IDF " + d.idf : "") +
+                          " · running from ota_" + boot +
+                          (other ? " (ota_" + (1 - boot) + " holds " + (other.version || "unknown") + ")" : "");
               $("verStatus").textContent = msg;
               $("verStatus").className = "status ok";
               log(msg);
@@ -555,7 +589,10 @@
                 return;
               }
               log("Writing main.bin at 0x" + APP_OFFSET.toString(16) + " (" + data.length + " bytes)…");
-              await writeFiles([{ data, address: APP_OFFSET }]);
+              // Also blank otadata (as ota_data_initial.bin does) so MUGIC boots ota_0 even
+              // after an over-the-air update left it booting ota_1. Settings (NVS) are kept.
+              await writeFiles([{ data, address: APP_OFFSET },
+                                { data: "\xff".repeat(0x2000), address: OTADATA_OFFSET }]);
               done("flashStatus", "Done — device restarted with new firmware.");
             } catch (e) {
               fail("flashStatus", e);
